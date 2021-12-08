@@ -174,21 +174,13 @@ T Lerp(T a, T b, float t)
 {
 	return(1.0f - t) * a + b * t;
 }
-float tran2;
-void keyboard()
-{
-	float camera;
 
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-	{
-		tran2 -= 0.06f;
-	}
-}
 
 class GameScene : public SMI_Scene
 {
 public:
-	GameScene() { SMI_Scene(); }
+	//just ignore the warning, guys. It's fine.
+	GameScene() : SMI_Scene() {}
 
 	void InitScene()
 	{
@@ -210,12 +202,40 @@ public:
 		Camera::Sptr camera = Camera::Create();
 
 		//camera position
-		camera->SetPosition(glm::vec3(tran2, 10.5, 9.9));
+		camera->SetPosition(glm::vec3(-0.2, 10.5, 9.9));
 		//this defines the point the camera is looking at
-		camera->LookAt(glm::vec3(tran2));
+		camera->LookAt(glm::vec3(0, 0, -0.2));
 
 		//camera->SetOrthoVerticalScale(5);
 		setCamera(camera);
+
+		//create the player character
+		VertexArrayObject::Sptr chara = ObjLoader::LoadFromFile("Models/character.obj");
+		{
+			character = CreateEntity();
+
+			//create texture
+			//Texture2D::Sptr CharacterTex = Texture2D::Create("Textures/character.png");
+			//create material
+			SMI_Material::Sptr CharacterMat = SMI_Material::Create();
+			CharacterMat->setShader(shader);
+
+			//set texture
+			//CharacterMat->setTexture(CharacterTex, 0);
+			//render
+			Renderer CharacterRend = Renderer(CharacterMat, chara);
+			AttachCopy(character, CharacterRend);
+			//transform & Physics
+			SMI_Transform CharaTrans = SMI_Transform();
+			CharaTrans.setPos(glm::vec3(5, -0.2, 2));
+			CharaTrans.SetDegree(glm::vec3(90, 0, -90));
+			CharaTrans.setScale(glm::vec3(0.35, 0.35, 0.35));
+			AttachCopy(character, CharaTrans);
+
+			SMI_Physics CharaPhys = SMI_Physics(glm::vec3(5, -0.2, 2), glm::vec3(90, 0, -90), glm::vec3(1, 1, 1), character, SMI_PhysicsBodyType::DYNAMIC, 1.0f);
+			CharaPhys.setHasGravity(false);
+			AttachCopy(character, CharaPhys);
+		}
 
 		//creates object
 		VertexArrayObject::Sptr vao4 = ObjLoader::LoadFromFile("Models/window1.obj");
@@ -708,8 +728,6 @@ public:
 			ShelfTrans7.SetDegree(glm::vec3(90, 0, 90));
 			AttachCopy(shel, ShelfTrans7);
 		}
-
-
 		VertexArrayObject::Sptr w3 = ObjLoader::LoadFromFile("Models/nba1.obj");
 		{
 
@@ -825,7 +843,6 @@ public:
 			floorTrans905.SetDegree(glm::vec3(90, 0, 90));
 			AttachCopy(L_plat, floorTrans905);
 		}
-
 		VertexArrayObject::Sptr cars = ObjLoader::LoadFromFile("Models/car.obj");
 		{
 
@@ -871,7 +888,6 @@ public:
 			buildTrans.SetDegree(glm::vec3(90, 0, -90));
 			AttachCopy(build, buildTrans);
 		}
-
 		VertexArrayObject::Sptr building2 = ObjLoader::LoadFromFile("Models/building1.obj");
 		{
 
@@ -1057,7 +1073,6 @@ public:
 			winTrans180.SetDegree(glm::vec3(90, 0, -90));
 			AttachCopy(bartab, winTrans180);
 		}
-
 		VertexArrayObject::Sptr garbage1 = ObjLoader::LoadFromFile("Models/garbage bin.obj");
 		{
 			garbage = CreateEntity();
@@ -1082,8 +1097,6 @@ public:
 			winTrans1801.SetDegree(glm::vec3(90, 0, -90));
 			AttachCopy(garbage, winTrans1801);
 		}
-
-
 	}
 
 	void Update(float deltaTime)
@@ -1103,6 +1116,29 @@ public:
 		float t = current / max;
 		float time = c / max;
 
+		//reference to player physics body
+		SMI_Physics& PlayerPhys = GetComponent<SMI_Physics>(character);
+		glm::vec3 NewCamPos = glm::vec3(PlayerPhys.GetPosition().x, camera->GetPosition().y, camera->GetPosition().z);
+		camera->SetPosition(NewCamPos);
+
+		//keyboard input
+		//move left
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		{
+			PlayerPhys.AddForce(glm::vec3(2.0, 0, 0));
+		}
+		//move right
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		{
+			PlayerPhys.AddForce(glm::vec3(-2, 0, 0));
+		}
+		//jump
+		if ((glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) && JumpState == GLFW_RELEASE)
+		{
+			PlayerPhys.AddImpulse(glm::vec3(0, 0, 5));
+		}
+		JumpState = glfwGetKey(window, GLFW_KEY_SPACE);
+
 		//rotation example
 		GetComponent<SMI_Transform>(fan1).FixedRotate(glm::vec3(0, 0, 30) * deltaTime * 8.0f);
 
@@ -1110,11 +1146,7 @@ public:
 
 		GetComponent<SMI_Transform>(door1).setPos(Lerp(glm::vec3(-27.2, 0, 2), glm::vec3(-27.2, 0, 10), t));
 
-
-
 		GetComponent<SMI_Transform>(car).setPos(Lerp(glm::vec3(-99.8, 3, 3.8), glm::vec3(-74.8, 3, 3.8), time));
-
-
 
 		GetComponent<SMI_Transform>(elevator12).setPos(Lerp(glm::vec3(-68.8, -1.6, -7.6), glm::vec3(-68.8, -1.6, 0.6), time));
 
@@ -1165,10 +1197,13 @@ private:
 	entt::entity roadb;
 	entt::entity roadb1;
 	entt::entity garbage;
+	entt::entity character;
 
 	float max = 5;
 	float current = 0;
 	float c = 0;
+
+	int JumpState = GLFW_RELEASE;
 };
 
 //main game loop inside here as well as call all needed shaders
