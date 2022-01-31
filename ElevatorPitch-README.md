@@ -14,3 +14,5 @@ This semester our main goals are to:
 - Redesign some of our levels so that they communicate the game's main functionality more clearly
 - Study the target market demographic to better understand how to market our game
 - better impliment post processing effects to add film grain style effects to better represent the old movies we take inspiration from
+# Gnatt Chart Link
+https://trello.com/b/YdTtG76j/project-dock-ward
